@@ -21,7 +21,13 @@ drawline(X, EndX, Y, PX-PY) :-
         ->
             write('#')
         ;
-            write('.')
+            (
+                tile(coord(X,Y))
+            ->
+                write('.')
+            ;
+                write(' ')
+            )
         )
     ),
     NX #= X + 1,

@@ -19,13 +19,11 @@ game_loop :-
     ).
 
 is_passable(Coord) :-
-    not(wall(Coord)).
+    tile(Coord).
 
 move(X, Y) :-
-    player(coord(PX, PY)),
-    NPX #= PX + X,
-    NPY #= PY + Y,
-    NewPos = coord(NPX, NPY),
+    player(OldPos),
+    move(OldPos, X, Y, NewPos),
     (
         is_passable(NewPos)
     ->
@@ -35,12 +33,11 @@ move(X, Y) :-
         noop
     ).
 
+% the noop is used in if-then-else when we need an if-then
+% with some side-effects. imperative prolog...
 noop.
 
 start_game :-
-    generate_room(coord(0,0), 4, 10, 4, 10, Room),
-    assert_room(Room),
-    rectangle_midpoint(Room, Mid),
-    assertz(player(Mid)),
+    generate_dungeon,
     game_loop.
 
