@@ -114,7 +114,23 @@ draw_background(Width, Height) :-
     ;
         noop
     ),
-    format('~w,~w', [PX,PY]).
+    %%%
+    % debug statements
+    (
+        dijkstra(coord(PX,PY), coord(35,35), Path)
+    ->
+        forall(member(coord(PPX,PPY),Path), (
+            TPPX #= PPX - ULX,
+            TPPY #= PPY - ULY,
+            tty_goto(TPPX, TPPY),
+            ansi_format([bg(red)], ' ', [])
+        ))
+    ;
+        noop
+    ),
+    tty_goto(0, Height),
+    format('Debug: ~w,~w\n', [PX,PY]).
+    %%% 
 
 draw_objects(Width, Height) :-
     MX #= Width // 2,

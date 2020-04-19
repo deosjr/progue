@@ -2,6 +2,7 @@
 
 :- ['ui.pl'].
 :- ['dungeon.pl'].
+:- ['path.pl'].
 
 % object state
 :- dynamic(player/1, wall/1, tile/1).
