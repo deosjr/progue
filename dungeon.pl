@@ -4,7 +4,7 @@ use_module(library(random)).
 
 generate_dungeon :-
     % generate starting room
-    generate_room(coord(0,0), 4, 10, 4, 10, Room),
+    generate_room(coord(35,35), 4, 10, 4, 10, Room),
     assert_room(Room),
     rectangle_midpoint(Room, Mid),
     assertz(player(Mid)),
@@ -14,9 +14,14 @@ generate_dungeon :-
 generate_connected_rooms(0, _).
 generate_connected_rooms(N, Rooms) :-
     N #> 0,
-    random_between(-30, 30, X),
-    random_between(-30, 30, Y),
-    generate_room(coord(X,Y), 4, 10, 4, 10, NewRoom),
+    RoomMaxX #= 10,
+    RoomMaxY #= 10,
+    map_size(MapX, MapY),
+    MaxX #= MapX - RoomMaxX,
+    MaxY #= MapY - RoomMaxY,
+    random_between(0, MaxX, X),
+    random_between(0, MaxY, Y),
+    generate_room(coord(X,Y), 4, RoomMaxX, 4, RoomMaxY, NewRoom),
     (
         forall(member(Room,Rooms), not(rectangles_overlap(Room, NewRoom)))
     ->

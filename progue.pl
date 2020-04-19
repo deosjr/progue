@@ -3,7 +3,10 @@
 :- ['ui.pl'].
 :- ['dungeon.pl'].
 
-:- dynamic(player/1, wall/1).
+% object state
+:- dynamic(player/1, wall/1, tile/1).
+% parameters 
+:- dynamic(map_size/2).
 
 game_loop :-
     draw_screen,
@@ -38,6 +41,8 @@ move(X, Y) :-
 noop.
 
 start_game :-
+    assertz(map_size(70, 70)),
     generate_dungeon,
+    initialize_ui,
     game_loop.
 

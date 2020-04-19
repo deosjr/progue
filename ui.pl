@@ -1,63 +1,157 @@
-% Y to draw, last Y to draw, start X, end X, player coords
-draw(Y,Y,_,_,_).
-draw(Y, EndY, StartX, EndX, PX-PY) :-
-    Y #< EndY,
-    drawline(StartX, EndX, Y, PX-PY),
-    write('\n'),
-    NY #= Y + 1,
-    draw(NY, EndY, StartX, EndX, PX-PY).
+% caching helps performance a lot here
+:- dynamic(background/1).
 
-% X to draw, last X to draw, current line Y, player coords
-drawline(X,X,_,_).
-drawline(X, EndX, Y, PX-PY) :-
-    X #< EndX,
+% setup background
+initialize_ui :-
+    map_size(MapX, MapY), 
+    range(0, MapX, XRange),
+    range(0, MapY, YRange),
+    maplist([Y,YY]>>(
+        maplist([X,XX]>>(
+            background_char(X,Y,XX)
+        ), XRange, CharList),
+        text_to_string(CharList, YY)
+    ), YRange, Background),
+    retractall(background(_)),
+    assertz(background(Background)).
+   
+background_char(X, Y, C) :-
     (
-        X #= PX, Y #= PY
+        wall(coord(X,Y))
     ->
-        write('@')
+        C = '#'
     ;
         (
-            wall(coord(X,Y))
+            tile(coord(X,Y))
         ->
-            write('#')
+            C = '.'
         ;
-            (
-                tile(coord(X,Y))
-            ->
-                write('.')
-            ;
-                write(' ')
-            )
+            C = ' '
         )
+    ).
+
+% bunch of stuff happening in here, lots of bugs. needs cleanup
+% NOTE: ULX and ULY can be negative, meaning screen is bigger than map
+% similarly, LRX and LRY can run out of the map bounds
+% need to buffer all of that with blank lines
+% KNOWN BUGS: incorrect padding, walls at coordinates -1 dont get drawn
+draw_background(Width, Height) :-
+    player(coord(PX, PY)),
+    Screen = rectangle(coord(ULX, ULY), coord(LRX, LRY)),
+    % TODO: definition of rectangle_midpoint, get instantiation err without it
+    %%%
+    Width #= LRX - ULX,
+    Height #= LRY - ULY,
+    PX #= ULX + (Width // 2),
+    PY #= ULY + (Height // 2),
+    %%%
+    rectangle_midpoint(Screen, coord(PX, PY)),
+    % MULX and MULY are the upper left coordinates but with lower bound 0 
+    % use those to take the slice out of background that we can draw
+    (
+        ULX #< 0
+    -> 
+        MULX #= 0,
+        % if ULX is negative we need to pad each line with some spaces
+        DX #= ULX * -1,
+        length(XBlanks, DX),
+        subset(XBlanks, [' ']),
+        text_to_string(XBlanks, XBuff)
+    ;
+        MULX #= ULX,
+        XBuff = ""
     ),
-    NX #= X + 1,
-    drawline(NX, EndX, Y, PX-PY).
+    (
+        ULY #< 0
+    -> 
+        MULY #= 0,
+        % if ULY is negative we need to pad the top with newlines
+        DY #= (ULY * -1) - 1,
+        range(0, DY, YR),
+        forall(member(_,YR), write('\n'))
+    ;
+        MULY #= ULY,
+        DY #= 0
+    ),
+    background(TotalBackground),
+    length(Prefix, MULY),
+    append(Prefix, Rest, TotalBackground),
+    % background is a list of strings
+    % find the correct slice to fit the screen
+    % NOTE: we can run over the mapY limit
+    map_size(MapX, MapY),
+    (
+        SHeight #= Height - DY,
+        MULY + SHeight #< MapY 
+    ->
+        length(Background, SHeight),
+        append(Background, _, Rest)
+    ;
+        Background = Rest
+    ),
+    (
+        MULX + Width #< MapX
+    ->
+        % draw the slice of the line starting at MULX with len Width
+        forall(member(Line, Background), (
+            sub_string(Line, MULX, Width, _, Sub),
+            format('~w~w\n', [XBuff, Sub])
+        ))
+    ;
+        % if we run over the mapX limit just draw the entire suffix
+        forall(member(Line, Background), (
+            sub_string(Line, MULX, _, 0, Sub),
+            format('~w~w\n', [XBuff, Sub])
+        ))
+    ),
+    % add blank lines if the map runs out at the bottom
+    (
+        MapY #< LRY
+    ->
+        LDY #= LRY - MapY + 1,
+        range(1, LDY, LYR),
+        forall(member(_,LYR), write('\n'))
+    ;
+        noop
+    ),
+    format('~w,~w', [PX,PY]).
+
+draw_objects(Width, Height) :-
+    MX #= Width // 2,
+    MY #= Height // 2,
+    tty_goto(MX, MY),
+    write('@').
 
 draw_screen :-
     tty_clear,
     tty_goto(0, 0),
-    player(coord(PX, PY)),
-    %tty_size(ScreenRows, ScreenColumns),
-    ScreenRows #= 30,
-    ScreenColumns #= 30,
-    start_end_window(ScreenColumns, PX, StartX, EndX),
-    start_end_window(ScreenRows, PY, StartY, EndY),
-    draw(StartY, EndY, StartX, EndX, PX-PY).
+    detect_screen_size(Width, Height),
+    draw_background(Width, Height),
+    draw_objects(Width, Height),
+    % TODO: rest of the ui like messages and such
+    NextY #= Height + 1,
+    tty_goto(0, NextY).
 
-start_end_window(Total, PCoord, Start, End) :-
-    Half #= Total // 2,
+% tty_size detects terminal screen size and updates
+% should enforce both Width and Height are uneven
+% (so player is neatly in the middle)
+detect_screen_size(Width, Height) :-
+    tty_size(Rows, Columns),
+    Offset #= 10,
     (
-        is_even(Total),
-        Start #= PCoord - Half + 1,
-        End #= PCoord + Half - 1
+        Columns mod 2 #= 0
+    ->
+        Width #= Columns - Offset - 1
     ;
-        not(is_even(Total)),
-        Start #= PCoord - Half,
-        End #= PCoord + Half
+        Width #= Columns - Offset
+    ),
+    (
+        Rows mod 2 #= 0
+    ->
+        Height #= Rows - Offset - 1
+    ;
+        Height #= Rows - Offset
     ).
-
-is_even(X) :-
-    X mod 2 #= 0.
 
 handle_command('k') :-
     move(0, -1).
@@ -69,4 +163,4 @@ handle_command('l') :-
     move(1, 0).
 handle_command(X) :-
     not(memberchk(X, ['k','h','j','l','q'])),
-    format('Unrecognized command ~c\n', [X]).
+    format('Unrecognized command ~w\n', [X]).
