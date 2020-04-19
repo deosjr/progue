@@ -120,7 +120,7 @@ draw_objects(Width, Height) :-
     MX #= Width // 2,
     MY #= Height // 2,
     tty_goto(MX, MY),
-    write('@').
+    ansi_format([fg(yellow)], '@', []).
 
 draw_screen :-
     tty_clear,
