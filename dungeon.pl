@@ -46,15 +46,15 @@ generate_room(ULHC, WidthMin, WidthMax, HeightMin, HeightMax, Room) :-
     random_between(HeightMin, HeightMax, H),
     DX #= W - 1,
     DY #= H - 1,
-    move(ULHC, DX, DY, LRHC),
+    coord_from_to(ULHC, DX, DY, LRHC),
     Room = rectangle(ULHC, LRHC).
 
 assert_room(rectangle(ULHC, LRHC)) :-
     ULHC = coord(ULX, ULY),
     LRHC = coord(LRX, LRY),
     % paint the walls, one step outside the room bounds
-    move(ULHC, -1, -1, WULHC),
-    move(LRHC, 1, 1, WLRHC),
+    coord_from_to(ULHC, -1, -1, WULHC),
+    coord_from_to(LRHC, 1, 1, WLRHC),
     WULHC = coord(WULX, WULY),
     WLRHC = coord(WLRX, WLRY),
     range(WULX, WLRX, WXRange),
@@ -144,7 +144,6 @@ rectangles_overlap(rectangle(ULHC1, LRHC1), rectangle(ULHC2, LRHC2)) :-
     ULY2 #=< LRY1.
 
 % coordinate system with X to the right, Y pointing down
-
-move(coord(CX,CY), X, Y, coord(NX,NY)) :-
+coord_from_to(coord(CX,CY), X, Y, coord(NX,NY)) :-
     NX #= CX + X,
     NY #= CY + Y.

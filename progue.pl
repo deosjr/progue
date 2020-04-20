@@ -27,21 +27,26 @@ handle_minotaur :-
     minotaur(Coord),
     player(PC),
     dijkstra(Coord, PC, [_,NewCoord|_]),
-    retractall(minotaur(_)),
-    assertz(minotaur(NewCoord)).
+    move_absolute(minotaur, NewCoord).
 
 is_passable(Coord) :-
-    tile(Coord).
+    tile(Coord),
+    not(player(Coord)),
+    not(minotaur(Coord)).
 
-move(Unit, X, Y) :-
+move_relative(Unit, X, Y) :-
     call(Unit, OldPos),
-    move(OldPos, X, Y, NewPos),
+    coord_from_to(OldPos, X, Y, NewPos),
+    move_absolute(Unit, NewPos).
+
+move_absolute(Unit, Pos) :-
+    Pos = coord(_,_),
     (
-        is_passable(NewPos)
+        is_passable(Pos)
     ->
         Old =.. [Unit, _],
         retractall(Old),
-        New =.. [Unit, NewPos],
+        New =.. [Unit, Pos],
         assertz(New)
     ;
         noop

@@ -118,8 +118,7 @@ draw_background(Width, Height, Screen) :-
     ;
         noop
     ),
-    tty_goto(0, Height),
-    format('Debug: ~w,~w\n', [PC, MC]).
+    tty_goto(0, Height).
     %%% 
 
 % draw at relative position based on screen coords
@@ -191,13 +190,13 @@ screen(Width, Height, Screen) :-
     rectangle_midpoint(Screen, coord(PX, PY)).
 
 handle_command('k') :-
-    move(player, 0, -1).
+    move_relative(player, 0, -1).
 handle_command('h') :-
-    move(player, -1, 0).
+    move_relative(player, -1, 0).
 handle_command('j') :-
-    move(player, 0, 1).
+    move_relative(player, 0, 1).
 handle_command('l') :-
-    move(player, 1, 0).
+    move_relative(player, 1, 0).
 handle_command(X) :-
     not(memberchk(X, ['k','h','j','l','q'])),
     format('Unrecognized command ~w\n', [X]).
