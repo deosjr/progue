@@ -35,17 +35,8 @@ background_char(X, Y, C) :-
 % similarly, LRX and LRY can run out of the map bounds
 % need to buffer all of that with blank lines
 % KNOWN BUGS: incorrect padding, walls at coordinates -1 dont get drawn
-draw_background(Width, Height) :-
-    player(coord(PX, PY)),
-    Screen = rectangle(coord(ULX, ULY), coord(LRX, LRY)),
-    % TODO: definition of rectangle_midpoint, get instantiation err without it
-    %%%
-    Width #= LRX - ULX,
-    Height #= LRY - ULY,
-    PX #= ULX + (Width // 2),
-    PY #= ULY + (Height // 2),
-    %%%
-    rectangle_midpoint(Screen, coord(PX, PY)),
+draw_background(Width, Height, Screen) :-
+    Screen = rectangle(coord(ULX, ULY), coord(_, LRY)),
     % MULX and MULY are the upper left coordinates but with lower bound 0 
     % use those to take the slice out of background that we can draw
     (
@@ -116,34 +107,51 @@ draw_background(Width, Height) :-
     ),
     %%%
     % debug statements
+    player(PC),
+    minotaur(MC),
     (
-        dijkstra(coord(PX,PY), coord(35,35), Path)
+        dijkstra(PC, MC, Path)
     ->
-        forall(member(coord(PPX,PPY),Path), (
-            TPPX #= PPX - ULX,
-            TPPY #= PPY - ULY,
-            tty_goto(TPPX, TPPY),
-            ansi_format([bg(red)], ' ', [])
+        forall(member(C, Path), (
+            draw_on_screen(Screen, C, [bg(red)], ' ', [])
         ))
     ;
         noop
     ),
     tty_goto(0, Height),
-    format('Debug: ~w,~w\n', [PX,PY]).
+    format('Debug: ~w,~w\n', [PC, MC]).
     %%% 
 
-draw_objects(Width, Height) :-
-    MX #= Width // 2,
-    MY #= Height // 2,
-    tty_goto(MX, MY),
-    ansi_format([fg(yellow)], '@', []).
+% draw at relative position based on screen coords
+draw_on_screen(Screen, coord(X,Y), Args, Str, Fmt) :-
+    Screen = rectangle(coord(ULX, ULY), coord(LRX, LRY)),
+    (
+        X #>= ULX, X #=< LRX,
+        Y #>= ULY, Y #=< LRY
+    ->
+        DX #= X - ULX,
+        DY #= Y - ULY,
+        tty_goto(DX, DY),
+        ansi_format(Args, Str, Fmt)
+    ;
+        noop
+    ).
+
+draw_objects(Screen) :-
+    player(PC),
+    draw_on_screen(Screen, PC, [fg(yellow)], '@', []),
+    % draw the minotaur if visible
+    % TODO: if visible
+    minotaur(MC),
+    draw_on_screen(Screen, MC, [fg(red)], 'M', []).
 
 draw_screen :-
     tty_clear,
     tty_goto(0, 0),
     detect_screen_size(Width, Height),
-    draw_background(Width, Height),
-    draw_objects(Width, Height),
+    screen(Width, Height, Screen),
+    draw_background(Width, Height, Screen),
+    draw_objects(Screen),
     % TODO: rest of the ui like messages and such
     NextY #= Height + 1,
     tty_goto(0, NextY).
@@ -168,15 +176,28 @@ detect_screen_size(Width, Height) :-
     ;
         Height #= Rows - Offset
     ).
+% get the screen coordinates relative to player position
+screen(Width, Height, Screen) :-
+    player(coord(PX, PY)),
+    Screen = rectangle(coord(ULX, ULY), coord(LRX, LRY)),
+    % TODO: definition of rectangle_midpoint, get instantiation err without it
+    % should be able to just call rectangle_midpoint and be done
+    %%%
+    Width #= LRX - ULX,
+    Height #= LRY - ULY,
+    PX #= ULX + (Width // 2),
+    PY #= ULY + (Height // 2),
+    %%%
+    rectangle_midpoint(Screen, coord(PX, PY)).
 
 handle_command('k') :-
-    move(0, -1).
+    move(player, 0, -1).
 handle_command('h') :-
-    move(-1, 0).
+    move(player, -1, 0).
 handle_command('j') :-
-    move(0, 1).
+    move(player, 0, 1).
 handle_command('l') :-
-    move(1, 0).
+    move(player, 1, 0).
 handle_command(X) :-
     not(memberchk(X, ['k','h','j','l','q'])),
     format('Unrecognized command ~w\n', [X]).

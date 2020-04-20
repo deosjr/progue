@@ -4,15 +4,20 @@ use_module(library(random)).
 
 generate_dungeon :-
     % generate starting room
-    generate_room(coord(35,35), 4, 10, 4, 10, Room),
-    assert_room(Room),
-    rectangle_midpoint(Room, Mid),
-    assertz(player(Mid)),
-    generate_connected_rooms(10, [Room]).
+    generate_room(coord(35,35), 4, 10, 4, 10, StartingRoom),
+    assert_room(StartingRoom),
+    rectangle_midpoint(StartingRoom, PlayerPos),
+    assertz(player(PlayerPos)),
+    % generate 10 more rooms
+    generate_connected_rooms(10, [StartingRoom], Rooms),
+    % take the last one and place the minotaur there
+    Rooms = [MinotaurRoom|_],
+    rectangle_midpoint(MinotaurRoom, MinotaurPos),
+    assertz(minotaur(MinotaurPos)).
 
 % cannot backtrack over random so we have to generate and test
-generate_connected_rooms(0, _).
-generate_connected_rooms(N, Rooms) :-
+generate_connected_rooms(0, X, X).
+generate_connected_rooms(N, Rooms, TotalRooms) :-
     N #> 0,
     RoomMaxX #= 10,
     RoomMaxY #= 10,
@@ -29,9 +34,9 @@ generate_connected_rooms(N, Rooms) :-
         Rooms = [LastRoom|_],
         assert_corridor(LastRoom, NewRoom),
         NN #= N - 1,
-        generate_connected_rooms(NN, [NewRoom|Rooms])
+        generate_connected_rooms(NN, [NewRoom|Rooms], TotalRooms)
     ;
-        generate_connected_rooms(N, Rooms)
+        generate_connected_rooms(N, Rooms, TotalRooms)
     ).
 
 % generate a room with upperleft corner X-Y and random width/height
@@ -106,7 +111,7 @@ assert_wall(Coord) :-
 % will not remove tile if present
 assert_wall_unless_tile(Coord) :-
     (
-        tile(Coord) 
+        tile(Coord)
     -> 
         noop
     ;

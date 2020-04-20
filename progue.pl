@@ -5,7 +5,7 @@
 :- ['path.pl'].
 
 % object state
-:- dynamic(player/1, wall/1, tile/1).
+:- dynamic(player/1, minotaur/1, wall/1, tile/1).
 % parameters 
 :- dynamic(map_size/2).
 
@@ -19,26 +19,36 @@ game_loop :-
         writeln("Thanks for playing")
     ;
         handle_command(C),
+        handle_minotaur,
         game_loop
     ).
+
+handle_minotaur :-
+    minotaur(Coord),
+    player(PC),
+    dijkstra(Coord, PC, [_,NewCoord|_]),
+    retractall(minotaur(_)),
+    assertz(minotaur(NewCoord)).
 
 is_passable(Coord) :-
     tile(Coord).
 
-move(X, Y) :-
-    player(OldPos),
+move(Unit, X, Y) :-
+    call(Unit, OldPos),
     move(OldPos, X, Y, NewPos),
     (
         is_passable(NewPos)
     ->
-        retractall(player(_)),
-        assertz(player(NewPos))
+        Old =.. [Unit, _],
+        retractall(Old),
+        New =.. [Unit, NewPos],
+        assertz(New)
     ;
         noop
     ).
 
-% the noop is used in if-then-else when we need an if-then
-% with some side-effects. imperative prolog...
+% replacing this with some form of if-else without then
+% slows everything down...
 noop.
 
 start_game :-
