@@ -21,7 +21,9 @@ dijkstra(From, To, Path) :-
     retractall(from(_,_)).
 
 % goal, fringe, explored
-dijkstra([Current|ToExplore], Goal) :-
+dijkstra(ToExplore, Goal) :-
+    min_member(Current, ToExplore),
+    selectchk(Current, ToExplore, RestToExplore),
     Current = Dis-Coord,
     neighbours(Coord, Neighbours),
     include([C]>>(
@@ -31,7 +33,7 @@ dijkstra([Current|ToExplore], Goal) :-
     (
         Unvisited = []
     ->
-        dijkstra(ToExplore, Goal)
+        dijkstra(RestToExplore, Goal)
     ;
         (
             memberchk(Goal, Unvisited)
@@ -44,9 +46,8 @@ dijkstra([Current|ToExplore], Goal) :-
             )),
             NewDis #= Dis + 1,
             bagof(NewDis-C, member(C, Unvisited), NewlyExplored),
-            append(NewlyExplored, ToExplore, NextToExplore),
-            keysort(NextToExplore, Sorted),
-            dijkstra(Sorted, Goal)
+            append(NewlyExplored, RestToExplore, NextToExplore),
+            dijkstra(NextToExplore, Goal)
         )
     ).
 

@@ -26,6 +26,14 @@ game_loop :-
 handle_minotaur :-
     minotaur(Coord),
     player(PC),
+    coord_from_to(PC, X, Y, Coord),
+    (
+        abs(X) + abs(Y) #= 1
+    ->
+        add_message(red, "The minotaur catches up with you!", [])
+    ;
+        noop
+    ),
     dijkstra(Coord, PC, [_,NewCoord|_]),
     move_absolute(minotaur, NewCoord).
 
@@ -58,7 +66,10 @@ noop.
 
 start_game :-
     assertz(map_size(70, 70)),
+    assertz(messages([])),
+    add_message(red, "Welcome to the lair of the Minotaur Wizard", []),
+    add_message(white, "Welcome to the lair of the Minotaur Wizard", []),
+    add_message(blue, "Welcome to the lair of the Minotaur Wizard", []),
     generate_dungeon,
     initialize_ui,
     game_loop.
-

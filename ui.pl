@@ -1,5 +1,5 @@
 % caching helps performance a lot here
-:- dynamic(background/1).
+:- dynamic(background/1, messages/1).
 
 % setup background
 initialize_ui :-
@@ -105,6 +105,13 @@ draw_background(Width, Height, Screen) :-
     ;
         noop
     ),
+    messages(MessageLog),
+    take(5, MessageLog, Messages),
+    reverse(Messages, RevMessages),
+    forall(member(Colour-Str-Fmt, RevMessages), (
+        ansi_format([fg(Colour)], Str, Fmt),
+        write('\n')
+    )),
     %%%
     % debug statements
     player(PC),
@@ -200,3 +207,19 @@ handle_command('l') :-
 handle_command(X) :-
     not(memberchk(X, ['k','h','j','l','q'])),
     format('Unrecognized command ~w\n', [X]).
+
+add_message(Colour, String, FmtArgs) :-
+    messages(MessageLog),
+    retractall(messages(_)),
+    assertz(messages([Colour-String-FmtArgs|MessageLog])).
+
+take(N, List, Pref) :-
+    length(List, Len),
+    (
+     	N #>= Len
+    ->
+    	Pref = List
+    ;
+    	length(Pref, N),
+    	prefix(Pref, List)
+    ).

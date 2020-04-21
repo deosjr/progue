@@ -119,7 +119,7 @@ assert_wall_unless_tile(Coord) :-
     ).
 
 range(Min, Max, Range) :-
-    findall(X, between(Min, Max, X), Range).
+    numlist(Min, Max, Range).
 
 rectangle(coord(ULX, ULY), coord(LRX, LRY)) :-
     ULX #< LRX,
