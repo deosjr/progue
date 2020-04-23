@@ -104,29 +104,7 @@ draw_background(Width, Height, Screen) :-
         forall(member(_,LYR), write('\n'))
     ;
         noop
-    ),
-    messages(MessageLog),
-    take(5, MessageLog, Messages),
-    reverse(Messages, RevMessages),
-    forall(member(Colour-Str-Fmt, RevMessages), (
-        ansi_format([fg(Colour)], Str, Fmt),
-        write('\n')
-    )),
-    %%%
-    % debug statements
-    player(PC),
-    minotaur(MC),
-    (
-        dijkstra(PC, MC, Path)
-    ->
-        forall(member(C, Path), (
-            draw_on_screen(Screen, C, [bg(red)], ' ', [])
-        ))
-    ;
-        noop
-    ),
-    tty_goto(0, Height).
-    %%% 
+    ).
 
 % draw at relative position based on screen coords
 draw_on_screen(Screen, coord(X,Y), Args, Str, Fmt) :-
@@ -151,6 +129,18 @@ draw_objects(Screen) :-
     minotaur(MC),
     draw_on_screen(Screen, MC, [fg(red)], 'M', []).
 
+draw_messages :-
+    detect_screen_size(_, Height),
+    NextY #= Height + 1,
+    tty_goto(0, NextY),
+    messages(MessageLog),
+    take(5, MessageLog, Messages),
+    reverse(Messages, RevMessages),
+    forall(member(Colour-Str-Fmt, RevMessages), (
+        ansi_format([fg(Colour)], Str, Fmt),
+        write('\n')
+    )).
+
 draw_screen :-
     tty_clear,
     tty_goto(0, 0),
@@ -158,9 +148,7 @@ draw_screen :-
     screen(Width, Height, Screen),
     draw_background(Width, Height, Screen),
     draw_objects(Screen),
-    % TODO: rest of the ui like messages and such
-    NextY #= Height + 1,
-    tty_goto(0, NextY).
+    draw_messages.
 
 % tty_size detects terminal screen size and updates
 % should enforce both Width and Height are uneven
@@ -211,7 +199,8 @@ handle_command(X) :-
 add_message(Colour, String, FmtArgs) :-
     messages(MessageLog),
     retractall(messages(_)),
-    assertz(messages([Colour-String-FmtArgs|MessageLog])).
+    assertz(messages([Colour-String-FmtArgs|MessageLog])),
+    draw_messages.
 
 take(N, List, Pref) :-
     length(List, Len),

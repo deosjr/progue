@@ -2,6 +2,8 @@ use_module(library(random)).
 
 % TODO: cool stuff like divide-and-conquer delaunay etc
 
+% bug: dumb generation means sometimes minotaur cant reach player,
+% right now resulting in crash. test dijkstra(minotaur, player) here?
 generate_dungeon :-
     % generate starting room
     generate_room(coord(35,35), 4, 10, 4, 10, StartingRoom),
@@ -13,7 +15,9 @@ generate_dungeon :-
     % take the last one and place the minotaur there
     Rooms = [MinotaurRoom|_],
     rectangle_midpoint(MinotaurRoom, MinotaurPos),
-    assertz(minotaur(MinotaurPos)).
+    assertz(minotaur(MinotaurPos)),
+    % this is an assertion: if true we would have screwed up in dungeon gen
+    not((tile(Coord), wall(Coord))).
 
 % cannot backtrack over random so we have to generate and test
 generate_connected_rooms(0, X, X).
