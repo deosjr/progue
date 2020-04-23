@@ -1,4 +1,4 @@
-use_module(library(random)).
+:- dynamic(wall/1, tile/1).
 
 % TODO: cool stuff like divide-and-conquer delaunay etc
 
@@ -9,13 +9,13 @@ generate_dungeon :-
     generate_room(coord(35,35), 4, 10, 4, 10, StartingRoom),
     assert_room(StartingRoom),
     rectangle_midpoint(StartingRoom, PlayerPos),
-    assertz(player(PlayerPos)),
+    assertz(pos(player, PlayerPos)),
     % generate 10 more rooms
     generate_connected_rooms(10, [StartingRoom], Rooms),
     % take the last one and place the minotaur there
     Rooms = [MinotaurRoom|_],
     rectangle_midpoint(MinotaurRoom, MinotaurPos),
-    assertz(minotaur(MinotaurPos)),
+    assertz(pos(minotaur, MinotaurPos)),
     % this is an assertion: if true we would have screwed up in dungeon gen
     not((tile(Coord), wall(Coord))).
 

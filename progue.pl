@@ -6,7 +6,7 @@
 :- ['magic.pl'].
 
 % object state
-:- dynamic(player/1, minotaur/1, wall/1, tile/1).
+:- dynamic(pos/2, health/2, manapool/2).
 % parameters 
 :- dynamic(map_size/2).
 
@@ -21,7 +21,9 @@ game_loop :-
         writeln("Thanks for playing")
     ;
         handle_command(C),
+        attack_if_adjacent(player, minotaur),
         handle_minotaur,
+        attack_if_adjacent(minotaur, player),
         game_loop
     ).
 
@@ -38,35 +40,45 @@ handle_minotaur :-
 
 minotaur_casts_spell :-
     manapool(minotaur, Mana),
-    retractall(manapool(minotaur, _)),
     NewMana #= Mana - 7,
-    assertz(manapool(minotaur, NewMana)),
+    update_state(manapool, minotaur, NewMana),
     add_message(red, "The minotaur casts a spell!", []).
 
 minotaur_moves_closer :-
-    minotaur(Coord),
-    player(PC),
-    coord_from_to(PC, X, Y, Coord),
-    (
-        abs(X) + abs(Y) #=< 2,
-        Message = "The minotaur catches up with you!",
-        messages([_-LastMessage-_|_]),
-        LastMessage \= Message
-    ->
-        add_message(red, Message, [])
-    ;
-        noop
-    ),
+    pos(minotaur, Coord),
+    pos(player, PC),
     dijkstra(Coord, PC, [_,NewCoord|_]),
     move_absolute(minotaur, NewCoord).
 
+attack_if_adjacent(Attacker, Defender) :-
+    pos(Attacker, APos),
+    pos(Defender, DPos),
+    (
+        coord_from_to(APos, X, Y, DPos),
+        abs(X) + abs(Y) #= 1
+    ->
+        health(Defender, HP),
+        NewHP #= HP - 1,
+        update_state(health, Defender, NewHP),
+        add_message(white, "~w hits ~w!", [Attacker, Defender]),
+        (
+            NewHP #= 0
+        ->
+            add_message(red, "~w dies!", [Defender])
+        ;
+            noop
+        )
+    ;
+        noop
+    ).
+
 is_passable(Coord) :-
     tile(Coord),
-    not(player(Coord)),
-    not(minotaur(Coord)).
+    not(pos(player, Coord)),
+    not(pos(minotaur, Coord)).
 
 move_relative(Unit, X, Y) :-
-    call(Unit, OldPos),
+    pos(Unit, OldPos),
     coord_from_to(OldPos, X, Y, NewPos),
     move_absolute(Unit, NewPos).
 
@@ -75,10 +87,7 @@ move_absolute(Unit, Pos) :-
     (
         is_passable(Pos)
     ->
-        Old =.. [Unit, _],
-        retractall(Old),
-        New =.. [Unit, Pos],
-        assertz(New)
+        update_state(pos, Unit, Pos)
     ;
         noop
     ).
@@ -87,9 +96,17 @@ move_absolute(Unit, Pos) :-
 % slows everything down...
 noop.
 
+update_state(State, Unit, Value) :-
+    Old =.. [State, Unit, _],
+    retractall(Old),
+    New =.. [State, Unit, Value],
+    assertz(New).
+
 start_game :-
     assertz(map_size(70, 70)),
     assertz(messages([])),
+    assertz(health(player, 10)),
+    assertz(health(minotaur, 20)),
     add_message(white, "Welcome to the lair of the Minotaur Wizard", []),
     generate_dungeon,
     initialize_magic,

@@ -122,11 +122,11 @@ draw_on_screen(Screen, coord(X,Y), Args, Str, Fmt) :-
     ).
 
 draw_objects(Screen) :-
-    player(PC),
+    pos(player, PC),
     draw_on_screen(Screen, PC, [fg(yellow)], '@', []),
     % draw the minotaur if visible
     % TODO: if visible
-    minotaur(MC),
+    pos(minotaur, MC),
     draw_on_screen(Screen, MC, [fg(red)], 'M', []).
 
 draw_messages :-
@@ -172,7 +172,7 @@ detect_screen_size(Width, Height) :-
     ).
 % get the screen coordinates relative to player position
 screen(Width, Height, Screen) :-
-    player(coord(PX, PY)),
+    pos(player, coord(PX, PY)),
     Screen = rectangle(coord(ULX, ULY), coord(LRX, LRY)),
     % TODO: definition of rectangle_midpoint, get instantiation err without it
     % should be able to just call rectangle_midpoint and be done

@@ -1,4 +1,3 @@
-
 :- dynamic(explored/1, from/2).
 
 dijkstra(From, To, Path) :-
