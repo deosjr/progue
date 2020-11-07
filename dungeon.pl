@@ -1,21 +1,21 @@
-:- dynamic(wall/1, tile/1).
+:- dynamic([wall/1, tile/1]).
 
 % TODO: cool stuff like divide-and-conquer delaunay etc
 
-% bug: dumb generation means sometimes minotaur cant reach player,
-% right now resulting in crash. test dijkstra(minotaur, player) here?
 generate_dungeon :-
     % generate starting room
     generate_room(coord(35,35), 4, 10, 4, 10, StartingRoom),
     assert_room(StartingRoom),
     rectangle_midpoint(StartingRoom, PlayerPos),
-    assertz(pos(player, PlayerPos)),
+    add_player(PlayerPos),
     % generate 10 more rooms
     generate_connected_rooms(10, [StartingRoom], Rooms),
     % take the last one and place the minotaur there
-    Rooms = [MinotaurRoom|_],
+    Rooms = [MinotaurRoom, SecondRoom|_],
     rectangle_midpoint(MinotaurRoom, MinotaurPos),
-    assertz(pos(minotaur, MinotaurPos)),
+    add_monster(minotaur, MinotaurPos),
+    rectangle_midpoint(SecondRoom, SecondPos),
+    add_monster(minotaur, SecondPos),
     % this is an assertion: if true we would have screwed up in dungeon gen
     not((tile(Coord), wall(Coord))).
 
@@ -62,11 +62,11 @@ assert_room(rectangle(ULHC, LRHC)) :-
     WULHC = coord(WULX, WULY),
     WLRHC = coord(WLRX, WLRY),
     range(WULX, WLRX, WXRange),
-    forall(member(X,WXRange), assert_wall(coord(X, WULY))),
-    forall(member(X,WXRange), assert_wall(coord(X, WLRY))),
+    forall(member(X,WXRange), assert_wall_unless_tile(coord(X, WULY))),
+    forall(member(X,WXRange), assert_wall_unless_tile(coord(X, WLRY))),
     range(WULY, WLRY, WYRange),
-    forall(member(Y,WYRange), assert_wall(coord(WULX, Y))),
-    forall(member(Y,WYRange), assert_wall(coord(WLRX, Y))),
+    forall(member(Y,WYRange), assert_wall_unless_tile(coord(WULX, Y))),
+    forall(member(Y,WYRange), assert_wall_unless_tile(coord(WLRX, Y))),
     % now paint all the tiles in between
     range(ULX, LRX, XRange),
     range(ULY, LRY, YRange),

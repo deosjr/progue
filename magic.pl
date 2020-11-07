@@ -13,7 +13,9 @@ update_winds_of_magic :-
         random_between(0, 10, NewTimer),
         random_between(0, 10, NewManaPool),
         update_state(manapool, player, NewManaPool),
-        update_state(manapool, minotaur, NewManaPool)
+        forall(type(Instance, _), 
+            update_state(manapool, Instance, NewManaPool)
+        )
     ;
         NewTimer #= ResetTimer - 1
     ),

@@ -1,5 +1,5 @@
 % caching helps performance a lot here
-:- dynamic(background/1, messages/1).
+:- dynamic([background/1, messages/1]).
 
 % setup background
 initialize_ui :-
@@ -80,21 +80,51 @@ draw_background(Width, Height, Screen) :-
     ;
         Background = Rest
     ),
+    % draw the slice of the line starting at MULX with len Width
+    % if we run over the mapX limit just draw the entire suffix
     (
         MULX + Width #< MapX
     ->
-        % draw the slice of the line starting at MULX with len Width
-        forall(member(Line, Background), (
-            sub_string(Line, MULX, Width, _, Sub),
-            format('~w~w\n', [XBuff, Sub])
-        ))
+        LineWidth = Width,
+        Rem = _
     ;
-        % if we run over the mapX limit just draw the entire suffix
-        forall(member(Line, Background), (
-            sub_string(Line, MULX, _, 0, Sub),
-            format('~w~w\n', [XBuff, Sub])
-        ))
+        LineWidth = _,
+        Rem = 0
     ),
+    enumerate(Background, Enumerated),
+    forall(member(Index-Line, Enumerated), (
+        sub_string(Line, MULX, LineWidth, Rem, Sub),
+        format('~w~w', [XBuff, Sub]),
+        % draw the right sidebar
+        (
+            Index #= 2,
+            health(player, HP),
+            format('  Player HP:   ~w/10', [HP])
+        ;
+            Index #= 3,
+            manapool(player, MP),
+            format('  Player MP:   ~w', [MP])
+        ;
+            Index #= 4,
+            health(0, HP),
+            format('  Minotaur HP: ~w/20', [HP])
+        ;
+            Index #= 5,
+            manapool(0, MP),
+            format('  Minotaur MP: ~w', [MP])
+        ;
+            Index #= 6,
+            health(1, HP),
+            format('  Minotaur HP: ~w/20', [HP])
+        ;
+            Index #= 7,
+            manapool(1, MP),
+            format('  Minotaur MP: ~w', [MP])
+        ;
+            (not(memberchk(Index, [2,3,4,5,6,7])))
+        ),
+        write('\n')
+    )),
     % add blank lines if the map runs out at the bottom
     (
         MapY #< LRY
@@ -105,6 +135,10 @@ draw_background(Width, Height, Screen) :-
     ;
         noop
     ).
+
+% returns list as tuples of index-value, starting at 0
+enumerate(Line, Enumerated) :-
+    foldl([X, Y, S0, S1]>>(Y=S0-X, S1 #= S0+1), Line, Enumerated, 0, _).
 
 % draw at relative position based on screen coords
 draw_on_screen(Screen, coord(X,Y), Args, Str, Fmt) :-
@@ -126,8 +160,10 @@ draw_objects(Screen) :-
     draw_on_screen(Screen, PC, [fg(yellow)], '@', []),
     % draw the minotaur if visible
     % TODO: if visible
-    pos(minotaur, MC),
-    draw_on_screen(Screen, MC, [fg(red)], 'M', []).
+    forall(type(Instance, _), (
+        pos(Instance, MC),
+        draw_on_screen(Screen, MC, [fg(red)], 'M', [])
+    )).
 
 draw_messages :-
     detect_screen_size(_, Height),

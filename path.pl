@@ -1,4 +1,4 @@
-:- dynamic(explored/1, from/2).
+:- dynamic([explored/1, from/2]).
 
 dijkstra(From, To, Path) :-
     From = coord(_,_),
@@ -27,6 +27,7 @@ dijkstra(ToExplore, Goal) :-
     neighbours(Coord, Neighbours),
     include([C]>>(
         tile(C), 
+        (is_passable(C);C=Goal),
         not(explored(C))
     ), Neighbours, Unvisited),
     (
