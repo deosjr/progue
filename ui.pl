@@ -30,6 +30,12 @@ background_char(X, Y, C) :-
         )
     ).
 
+n_times_string(Char, N, String) :-
+    length(List, N),
+    subset(List, [Char]),
+    text_to_string(List, String).
+    
+
 % bunch of stuff happening in here, lots of bugs. needs cleanup
 % NOTE: ULX and ULY can be negative, meaning screen is bigger than map
 % similarly, LRX and LRY can run out of the map bounds
@@ -45,9 +51,7 @@ draw_background(Width, Height, Screen) :-
         MULX #= 0,
         % if ULX is negative we need to pad each line with some spaces
         DX #= ULX * -1,
-        length(XBlanks, DX),
-        subset(XBlanks, [' ']),
-        text_to_string(XBlanks, XBuff)
+        n_times_string(' ', DX, XBuff)
     ;
         MULX #= ULX,
         XBuff = ""
@@ -58,8 +62,8 @@ draw_background(Width, Height, Screen) :-
         MULY #= 0,
         % if ULY is negative we need to pad the top with newlines
         DY #= (ULY * -1) - 1,
-        range(0, DY, YR),
-        forall(member(_,YR), write('\n'))
+        n_times_string('\n', DY, YSTR),
+        write(YSTR)
     ;
         MULY #= ULY,
         DY #= 0
@@ -92,46 +96,48 @@ draw_background(Width, Height, Screen) :-
         Rem = 0
     ),
     enumerate(Background, Enumerated),
-    forall(member(Index-Line, Enumerated), (
+    maplist({XBuff, MULX, LineWidth, Rem}/[Index-Line, Out]>>(
         sub_string(Line, MULX, LineWidth, Rem, Sub),
-        format('~w~w', [XBuff, Sub]),
         % draw the right sidebar
         (
             Index #= 2,
             health(player, HP),
-            format('  Player HP:   ~w/10', [HP])
+            format(string(Out), '~w~w  Player HP:   ~w/10\n', [XBuff, Sub, HP])
         ;
             Index #= 3,
             manapool(player, MP),
-            format('  Player MP:   ~w', [MP])
+            format(string(Out), '~w~w  Player MP:   ~w\n', [XBuff, Sub, MP])
         ;
             Index #= 4,
             health(0, HP),
-            format('  Minotaur HP: ~w/20', [HP])
+            format(string(Out), '~w~w  Minotaur HP: ~w/20\n', [XBuff, Sub, HP])
         ;
             Index #= 5,
             manapool(0, MP),
-            format('  Minotaur MP: ~w', [MP])
+            format(string(Out), '~w~w  Minotaur MP: ~w\n', [XBuff, Sub, MP])
         ;
             Index #= 6,
             health(1, HP),
-            format('  Minotaur HP: ~w/20', [HP])
+            format(string(Out), '~w~w  Minotaur HP: ~w/20\n', [XBuff, Sub, HP])
         ;
             Index #= 7,
             manapool(1, MP),
-            format('  Minotaur MP: ~w', [MP])
+            format(string(Out), '~w~w  Minotaur MP: ~w\n', [XBuff, Sub, MP])
         ;
-            (not(memberchk(Index, [2,3,4,5,6,7])))
-        ),
-        write('\n')
-    )),
+            (not(memberchk(Index, [2,3,4,5,6,7]))),
+            format(string(Out), '~w~w\n', [XBuff, Sub])
+        )
+    ), Enumerated, StringList),
+    reverse(StringList, Rev),
+    foldl(concat, Rev, "", BackgroundString),
+    format('~w\n', [BackgroundString]),
     % add blank lines if the map runs out at the bottom
     (
         MapY #< LRY
     ->
-        LDY #= LRY - MapY + 1,
-        range(1, LDY, LYR),
-        forall(member(_,LYR), write('\n'))
+        LDY #= LRY - MapY,
+        n_times_string('\n', LDY, BottomPadding),
+        write(BottomPadding)
     ;
         noop
     ).
