@@ -1,20 +1,7 @@
-% caching helps performance a lot here
-:- dynamic([background/1, messages/1]).
+:- dynamic([messages/1]).
 
-% setup background
-initialize_ui :-
-    map_size(MapX, MapY), 
-    range(0, MapX, XRange),
-    range(0, MapY, YRange),
-    maplist([Y,YY]>>(
-        maplist([X,XX]>>(
-            background_char(X,Y,XX)
-        ), XRange, CharList),
-        text_to_string(CharList, YY)
-    ), YRange, Background),
-    retractall(background(_)),
-    assertz(background(Background)).
-   
+:- table background_char/3.
+
 background_char(X, Y, C) :-
     (
         wall(coord(X,Y))
@@ -30,121 +17,47 @@ background_char(X, Y, C) :-
         )
     ).
 
-n_times_string(Char, N, String) :-
-    length(List, N),
-    subset(List, [Char]),
-    text_to_string(List, String).
-    
+draw_background(Screen) :-
+    Screen = rectangle(coord(ULX, ULY), coord(LRX, LRY)),
+    numlist(ULX, LRX, Xs),
+    numlist(ULY, LRY, Ys),
+    forall(member(Y, Ys), (
+        maplist([X,C]>>background_char(X,Y,C), Xs, Cs),
+        text_to_string(Cs, Str),
+        Index #= Y - ULY,
+        add_sidebar(Index, Str, S),
+        writeln(S)
+    )).
 
-% bunch of stuff happening in here, lots of bugs. needs cleanup
-% NOTE: ULX and ULY can be negative, meaning screen is bigger than map
-% similarly, LRX and LRY can run out of the map bounds
-% need to buffer all of that with blank lines
-% KNOWN BUGS: incorrect padding, walls at coordinates -1 dont get drawn
-draw_background(Width, Height, Screen) :-
-    Screen = rectangle(coord(ULX, ULY), coord(_, LRY)),
-    % MULX and MULY are the upper left coordinates but with lower bound 0 
-    % use those to take the slice out of background that we can draw
+add_sidebar(Index, Str, Out) :-
     (
-        ULX #< 0
-    -> 
-        MULX #= 0,
-        % if ULX is negative we need to pad each line with some spaces
-        DX #= ULX * -1,
-        n_times_string(' ', DX, XBuff)
+        Index #= 2,
+        health(player, HP),
+        format(string(Out), '~w  Player HP:   ~w/10', [Str, HP])
     ;
-        MULX #= ULX,
-        XBuff = ""
-    ),
-    (
-        ULY #< 0
-    -> 
-        MULY #= 0,
-        % if ULY is negative we need to pad the top with newlines
-        DY #= (ULY * -1) - 1,
-        n_times_string('\n', DY, YSTR),
-        write(YSTR)
+        Index #= 3,
+        manapool(player, MP),
+        format(string(Out), '~w  Player MP:   ~w', [Str, MP])
     ;
-        MULY #= ULY,
-        DY #= 0
-    ),
-    background(TotalBackground),
-    length(Prefix, MULY),
-    append(Prefix, Rest, TotalBackground),
-    % background is a list of strings
-    % find the correct slice to fit the screen
-    % NOTE: we can run over the mapY limit
-    map_size(MapX, MapY),
-    (
-        SHeight #= Height - DY,
-        MULY + SHeight #< MapY 
-    ->
-        length(Background, SHeight),
-        append(Background, _, Rest)
+        Index #= 4,
+        health(0, HP),
+        format(string(Out), '~w  Minotaur HP: ~w/20', [Str, HP])
     ;
-        Background = Rest
-    ),
-    % draw the slice of the line starting at MULX with len Width
-    % if we run over the mapX limit just draw the entire suffix
-    (
-        MULX + Width #< MapX
-    ->
-        LineWidth = Width,
-        Rem = _
+        Index #= 5,
+        manapool(0, MP),
+        format(string(Out), '~w  Minotaur MP: ~w', [Str, MP])
     ;
-        LineWidth = _,
-        Rem = 0
-    ),
-    enumerate(Background, Enumerated),
-    maplist({XBuff, MULX, LineWidth, Rem}/[Index-Line, Out]>>(
-        sub_string(Line, MULX, LineWidth, Rem, Sub),
-        % draw the right sidebar
-        (
-            Index #= 2,
-            health(player, HP),
-            format(string(Out), '~w~w  Player HP:   ~w/10\n', [XBuff, Sub, HP])
-        ;
-            Index #= 3,
-            manapool(player, MP),
-            format(string(Out), '~w~w  Player MP:   ~w\n', [XBuff, Sub, MP])
-        ;
-            Index #= 4,
-            health(0, HP),
-            format(string(Out), '~w~w  Minotaur HP: ~w/20\n', [XBuff, Sub, HP])
-        ;
-            Index #= 5,
-            manapool(0, MP),
-            format(string(Out), '~w~w  Minotaur MP: ~w\n', [XBuff, Sub, MP])
-        ;
-            Index #= 6,
-            health(1, HP),
-            format(string(Out), '~w~w  Minotaur HP: ~w/20\n', [XBuff, Sub, HP])
-        ;
-            Index #= 7,
-            manapool(1, MP),
-            format(string(Out), '~w~w  Minotaur MP: ~w\n', [XBuff, Sub, MP])
-        ;
-            (not(memberchk(Index, [2,3,4,5,6,7]))),
-            format(string(Out), '~w~w\n', [XBuff, Sub])
-        )
-    ), Enumerated, StringList),
-    reverse(StringList, Rev),
-    foldl(concat, Rev, "", BackgroundString),
-    format('~w\n', [BackgroundString]),
-    % add blank lines if the map runs out at the bottom
-    (
-        MapY #< LRY
-    ->
-        LDY #= LRY - MapY,
-        n_times_string('\n', LDY, BottomPadding),
-        write(BottomPadding)
+        Index #= 6,
+        health(1, HP),
+        format(string(Out), '~w  Minotaur HP: ~w/20', [Str, HP])
     ;
-        noop
+        Index #= 7,
+        manapool(1, MP),
+        format(string(Out), '~w  Minotaur MP: ~w', [Str, MP])
+    ;
+        (not(memberchk(Index, [2,3,4,5,6,7]))),
+        Out = Str
     ).
-
-% returns list as tuples of index-value, starting at 0
-enumerate(Line, Enumerated) :-
-    foldl([X, Y, S0, S1]>>(Y=S0-X, S1 #= S0+1), Line, Enumerated, 0, _).
 
 % draw at relative position based on screen coords
 draw_on_screen(Screen, coord(X,Y), Args, Str, Fmt) :-
@@ -188,7 +101,7 @@ draw_screen :-
     tty_goto(0, 0),
     detect_screen_size(Width, Height),
     screen(Width, Height, Screen),
-    draw_background(Width, Height, Screen),
+    draw_background(Screen),
     draw_objects(Screen),
     draw_messages.
 
@@ -197,20 +110,21 @@ draw_screen :-
 % (so player is neatly in the middle)
 detect_screen_size(Width, Height) :-
     tty_size(Rows, Columns),
-    Offset #= 10,
+    XOffset #= 30,
+    YOffset #= 10,
     (
         Columns mod 2 #= 0
     ->
-        Width #= Columns - Offset - 1
+        Width #= Columns - XOffset - 1
     ;
-        Width #= Columns - Offset
+        Width #= Columns - XOffset
     ),
     (
         Rows mod 2 #= 0
     ->
-        Height #= Rows - Offset - 1
+        Height #= Rows - YOffset - 1
     ;
-        Height #= Rows - Offset
+        Height #= Rows - YOffset
     ).
 % get the screen coordinates relative to player position
 screen(Width, Height, Screen) :-

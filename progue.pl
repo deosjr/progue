@@ -56,5 +56,4 @@ start_game :-
     add_message(white, "Welcome to the lair of the Minotaur Wizard", []),
     generate_dungeon,
     initialize_magic,
-    initialize_ui,
     game_loop.
