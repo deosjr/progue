@@ -9,7 +9,6 @@
 % parameters 
 :- dynamic(map_size/2).
 
-%% TODO game lags randomly on input, sometimes very slow to respond
 game_loop :-
     update_winds_of_magic,
     draw_screen,
@@ -35,10 +34,6 @@ game_loop :-
 is_passable(Coord) :-
     tile(Coord),
     not(pos(_, Coord)).
-
-% replacing this with some form of if-else without then
-% slows everything down...
-noop.
 
 update_state(State, Unit, Value) :-
     Old =.. [State, Unit, _],

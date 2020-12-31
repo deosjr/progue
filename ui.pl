@@ -40,19 +40,19 @@ add_sidebar(Index, Str, Out) :-
         format(string(Out), '~w  Player MP:   ~w', [Str, MP])
     ;
         Index #= 4,
-        health(0, HP),
+        (health(0, X) -> HP = X ; HP = 0),
         format(string(Out), '~w  Minotaur HP: ~w/20', [Str, HP])
     ;
         Index #= 5,
-        manapool(0, MP),
+        (manapool(0, X) -> MP = X ; MP = 0),
         format(string(Out), '~w  Minotaur MP: ~w', [Str, MP])
     ;
         Index #= 6,
-        health(1, HP),
+        (health(1, X) -> HP = X ; HP = 0),
         format(string(Out), '~w  Minotaur HP: ~w/20', [Str, HP])
     ;
         Index #= 7,
-        manapool(1, MP),
+        (manapool(1, X) -> MP = X ; MP = 0),
         format(string(Out), '~w  Minotaur MP: ~w', [Str, MP])
     ;
         (not(memberchk(Index, [2,3,4,5,6,7]))),
@@ -71,7 +71,7 @@ draw_on_screen(Screen, coord(X,Y), Args, Str, Fmt) :-
         tty_goto(DX, DY),
         ansi_format(Args, Str, Fmt)
     ;
-        noop
+        true
     ).
 
 draw_objects(Screen) :-

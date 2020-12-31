@@ -39,7 +39,7 @@ monster_moves_closer(Instance) :-
     (
         Path = "NoPathFound"
     ->
-        noop
+        true
     ;
         Path = [_,NewCoord|_],
         move_absolute(Instance, NewCoord)
@@ -60,21 +60,19 @@ attack_if_adjacent(Attacker, Defender) :-
         (
             NewHP #= 0
         ->
-            add_message(red, "~w dies!", [ND])
-            /*
+            add_message(red, "~w dies!", [ND]),
             (
                 Defender \= player
             ->
                 remove_monster(Defender)
             ;
-                noop
+                true
             )
-            */
         ;
-            noop
+            true
         )
     ;
-        noop
+        true
     ).
 
 move_relative(Unit, X, Y) :-
@@ -89,7 +87,7 @@ move_absolute(Unit, Pos) :-
     ->
         update_state(pos, Unit, Pos)
     ;
-        noop
+        true
     ).
 
 add_monster(Type, Pos) :-

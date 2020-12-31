@@ -117,7 +117,7 @@ assert_wall_unless_tile(Coord) :-
     (
         tile(Coord)
     -> 
-        noop
+        true
     ;
         assertz(wall(Coord))
     ).
