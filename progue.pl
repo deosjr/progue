@@ -11,6 +11,7 @@
 
 game_loop :-
     update_winds_of_magic,
+    update_visible,
     draw_screen,
     get_single_char(X),
     char_code(C, X),
@@ -42,7 +43,7 @@ update_state(State, Unit, Value) :-
     assertz(New).
 
 add_player(Pos) :-
-    assertz(health(player, 10)),
+    assertz(health(player, 100)),
     assertz(pos(player, Pos)).
 
 start_game :-

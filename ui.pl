@@ -1,17 +1,15 @@
 :- dynamic([messages/1]).
 
-:- table background_char/3.
-
 background_char(X, Y, C) :-
     (
         wall(coord(X,Y))
     ->
-        C = '#'
+        (visible(coord(X,Y)) -> C = '#' ; (seen(coord(X,Y)) -> C = 'x' ; C = ' '))
     ;
         (
             tile(coord(X,Y))
         ->
-            C = '.'
+            (visible(coord(X,Y)) -> C = '.' ; (seen(coord(X,Y)) -> C = ' ' ; C = ' '))
         ;
             C = ' '
         )
@@ -77,11 +75,11 @@ draw_on_screen(Screen, coord(X,Y), Args, Str, Fmt) :-
 draw_objects(Screen) :-
     pos(player, PC),
     draw_on_screen(Screen, PC, [fg(yellow)], '@', []),
-    % draw the minotaur if visible
-    % TODO: if visible
     forall(type(Instance, _), (
         pos(Instance, MC),
+        (visible(MC) ->
         draw_on_screen(Screen, MC, [fg(red)], 'M', [])
+        ; true)
     )).
 
 draw_messages :-

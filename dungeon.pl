@@ -1,4 +1,4 @@
-:- dynamic([wall/1, tile/1]).
+:- dynamic([wall/1, tile/1, visible/1, seen/1]).
 
 % TODO: cool stuff like divide-and-conquer delaunay etc
 
@@ -151,3 +151,26 @@ rectangles_overlap(rectangle(ULHC1, LRHC1), rectangle(ULHC2, LRHC2)) :-
 coord_from_to(coord(CX,CY), X, Y, coord(NX,NY)) :-
     NX #= CX + X,
     NY #= CY + Y.
+
+% floodfill is simplest, but FoV should be some ray- or shadowcasting algo
+update_visible :-
+    foreach(visible(C), (
+        (seen(C) -> true ; assertz(seen(C)))
+    )),
+    retractall(visible(_)),
+    pos(player, Pos),
+    floodfill(10, [Pos], Visible),
+    foreach(member(V, Visible),
+        assertz(visible(V))
+    ).
+
+floodfill(0, X, X).
+floodfill(N, Old, New) :-
+    N #> 0,
+    NN #= N-1,
+    exclude(wall, Old, Floors),
+    maplist(neighbours, Floors, Neighbours),
+    flatten(Neighbours, Flat),
+    list_to_set(Flat, Set),
+    union(Old, Set, Newer),
+    floodfill(NN, Newer, New).

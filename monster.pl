@@ -66,7 +66,7 @@ attack_if_adjacent(Attacker, Defender) :-
             ->
                 remove_monster(Defender)
             ;
-                true
+                fail
             )
         ;
             true

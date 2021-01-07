@@ -1,3 +1,4 @@
+% careful: explored and seen are very similar but completely different
 :- dynamic([explored/1, from/2]).
 
 dijkstra(From, To, Path) :-
