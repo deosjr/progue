@@ -45,6 +45,9 @@ monster_moves_closer(Instance) :-
         move_absolute(Instance, NewCoord)
     ).
 
+% TODO should only be used by monsters
+% player attacks by walking into monsters
+% monsters get a move+attack combo
 attack_if_adjacent(Attacker, Defender) :-
     pos(Attacker, APos),
     pos(Defender, DPos),

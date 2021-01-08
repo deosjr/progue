@@ -57,13 +57,18 @@ add_sidebar(Index, Str, Out) :-
         Out = Str
     ).
 
-% draw at relative position based on screen coords
-draw_on_screen(Screen, coord(X,Y), Args, Str, Fmt) :-
+pos_on_screen(Screen, coord(X,Y)) :-
     Screen = rectangle(coord(ULX, ULY), coord(LRX, LRY)),
+    X #>= ULX, X #=< LRX,
+    Y #>= ULY, Y #=< LRY.
+
+% draw at relative position based on screen coords
+draw_on_screen(Screen, Pos, Args, Str, Fmt) :-
+    Screen = rectangle(coord(ULX, ULY), _),
     (
-        X #>= ULX, X #=< LRX,
-        Y #>= ULY, Y #=< LRY
+        pos_on_screen(Screen, Pos)
     ->
+        Pos = coord(X,Y),
         DX #= X - ULX,
         DY #= Y - ULY,
         tty_goto(DX, DY),

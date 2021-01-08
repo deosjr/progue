@@ -154,15 +154,13 @@ coord_from_to(coord(CX,CY), X, Y, coord(NX,NY)) :-
 
 % floodfill is simplest, but FoV should be some ray- or shadowcasting algo
 update_visible :-
-    foreach(visible(C), (
-        (seen(C) -> true ; assertz(seen(C)))
-    )),
     retractall(visible(_)),
     pos(player, Pos),
     floodfill(10, [Pos], Visible),
-    foreach(member(V, Visible),
-        assertz(visible(V))
-    ).
+    foreach(member(V, Visible), (
+        assertz(visible(V)),
+        (seen(V) -> true ; assertz(seen(V)))
+    )).
 
 floodfill(0, X, X).
 floodfill(N, Old, New) :-
