@@ -22,12 +22,6 @@ game_loop :-
     ;
         handle_command(C),
         forall(type(Instance,_), (
-            % TODO player now attacks everyone in range...
-            % TODO: attack monster if walked into one
-            % instead of using monster logic for attacks
-            attack_if_adjacent(player, Instance)
-        )),
-        forall(type(Instance,_), (
             handle_monster(Instance)
         )),
         game_loop

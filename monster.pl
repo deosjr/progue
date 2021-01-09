@@ -45,9 +45,7 @@ monster_moves_closer(Instance) :-
         move_absolute(Instance, NewCoord)
     ).
 
-% TODO should only be used by monsters
-% player attacks by walking into monsters
-% monsters get a move+attack combo
+% used by monsters
 attack_if_adjacent(Attacker, Defender) :-
     pos(Attacker, APos),
     pos(Defender, DPos),
@@ -55,28 +53,37 @@ attack_if_adjacent(Attacker, Defender) :-
         coord_from_to(APos, X, Y, DPos),
         abs(X) + abs(Y) #= 1
     ->
-        health(Defender, HP),
-        NewHP #= HP - 1,
-        update_state(health, Defender, NewHP),
-        name(Attacker, NA), name(Defender, ND),
-        add_message(white, "~w hits ~w!", [NA, ND]),
+        attack(Attacker, Defender)
+    ;
+        true
+    ).
+
+attack(Attacker, Defender) :-
+    health(Defender, HP),
+    NewHP #= HP - 1,
+    update_state(health, Defender, NewHP),
+    name(Attacker, NA), name(Defender, ND),
+    add_message(white, "~w hits ~w!", [NA, ND]),
+    (
+        NewHP #= 0
+    ->
+        add_message(red, "~w dies!", [ND]),
         (
-            NewHP #= 0
+            Defender \= player
         ->
-            add_message(red, "~w dies!", [ND]),
-            (
-                Defender \= player
-            ->
-                remove_monster(Defender)
-            ;
-                fail
-            )
+            remove_monster(Defender)
         ;
-            true
+            fail
         )
     ;
         true
     ).
+
+move_player(DX, DY) :-
+    pos(player, Pos),
+    coord_from_to(Pos, DX, DY, NewPos),
+    ( pos(Instance, NewPos) -> attack(player, Instance)
+    ; move_absolute(player, NewPos) ).
 
 move_relative(Unit, X, Y) :-
     pos(Unit, OldPos),

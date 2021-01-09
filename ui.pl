@@ -144,13 +144,13 @@ screen(Width, Height, Screen) :-
     rectangle_midpoint(Screen, coord(PX, PY)).
 
 handle_command('k') :-
-    move_relative(player, 0, -1).
+    move_player(0, -1).
 handle_command('h') :-
-    move_relative(player, -1, 0).
+    move_player(-1, 0).
 handle_command('j') :-
-    move_relative(player, 0, 1).
+    move_player(0, 1).
 handle_command('l') :-
-    move_relative(player, 1, 0).
+    move_player(1, 0).
 handle_command(X) :-
     not(memberchk(X, ['k','h','j','l','q'])),
     format('Unrecognized command ~w\n', [X]).
