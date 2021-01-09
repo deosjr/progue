@@ -1,8 +1,18 @@
-:- dynamic([wall/1, tile/1, visible/1, seen/1]).
+:- dynamic([visible/1, seen/1, dungeon/1]).
 
 % TODO: cool stuff like divide-and-conquer delaunay etc
 
+wall(Pos) :-
+    dungeon(Trie),
+    trie_gen_compiled(Trie, Pos, wall).
+
+tile(Pos) :-
+    dungeon(Trie),
+    trie_gen_compiled(Trie, Pos, tile).
+
 generate_dungeon :-
+    trie_new(DungeonMap),
+    assertz(dungeon(DungeonMap)),
     % generate starting room
     generate_room(coord(35,35), 4, 10, 4, 10, StartingRoom),
     assert_room(StartingRoom),
@@ -104,22 +114,23 @@ assert_vertical_corridor(Min, Max, X) :-
 
 % will remove wall if present
 assert_tile(Coord) :-
-    retractall(wall(Coord)),
-    assertz(tile(Coord)).
+    dungeon(Trie),
+    trie_update(Trie, Coord, tile).
 
 % will remove tile if present
 assert_wall(Coord) :-
-    retractall(tile(Coord)),
-    assertz(wall(Coord)).
+    dungeon(Trie),
+    trie_update(Trie, Coord, wall).
 
 % will not remove tile if present
 assert_wall_unless_tile(Coord) :-
+    dungeon(Trie),
     (
-        tile(Coord)
+        trie_lookup(Trie, Coord, tile)
     -> 
         true
     ;
-        assertz(wall(Coord))
+        trie_update(Trie, Coord, wall)
     ).
 
 range(Min, Max, Range) :-
@@ -153,6 +164,7 @@ coord_from_to(coord(CX,CY), X, Y, coord(NX,NY)) :-
     NY #= CY + Y.
 
 % floodfill is simplest, but FoV should be some ray- or shadowcasting algo
+% TODO also use a Trie for visible/seen
 update_visible :-
     retractall(visible(_)),
     pos(player, Pos),
