@@ -13,14 +13,12 @@ game_loop :-
     update_winds_of_magic,
     update_visible,
     draw_screen,
-    get_single_char(X),
-    char_code(C, X),
+    get_command(C),
     (
         C = 'q' % q quits the game
     ->
-        writeln("Thanks for playing")
+        message_box("Thanks for playing")
     ;
-        handle_command(C),
         forall(type(Instance,_), (
             handle_monster(Instance)
         )),
@@ -39,6 +37,7 @@ update_state(State, Unit, Value) :-
 
 add_player(Pos) :-
     assertz(health(player, 100)),
+    assertz(spell_in_slot(player, heal, 1)),
     assertz(pos(player, Pos)).
 
 start_game :-

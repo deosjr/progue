@@ -22,40 +22,28 @@ draw_background(Screen) :-
     forall(member(Y, Ys), (
         maplist([X,C]>>background_char(X,Y,C), Xs, Cs),
         text_to_string(Cs, Str),
-        Index #= Y - ULY,
-        add_sidebar(Index, Str, S),
-        writeln(S)
+        writeln(Str)
     )).
 
-add_sidebar(Index, Str, Out) :-
-    (
-        Index #= 2,
-        health(player, HP),
-        format(string(Out), '~w  Player HP:   ~w/10', [Str, HP])
-    ;
-        Index #= 3,
-        manapool(player, MP),
-        format(string(Out), '~w  Player MP:   ~w', [Str, MP])
-    ;
-        Index #= 4,
-        (health(0, X) -> HP = X ; HP = 0),
-        format(string(Out), '~w  Minotaur HP: ~w/20', [Str, HP])
-    ;
-        Index #= 5,
-        (manapool(0, X) -> MP = X ; MP = 0),
-        format(string(Out), '~w  Minotaur MP: ~w', [Str, MP])
-    ;
-        Index #= 6,
-        (health(1, X) -> HP = X ; HP = 0),
-        format(string(Out), '~w  Minotaur HP: ~w/20', [Str, HP])
-    ;
-        Index #= 7,
-        (manapool(1, X) -> MP = X ; MP = 0),
-        format(string(Out), '~w  Minotaur MP: ~w', [Str, MP])
-    ;
-        (not(memberchk(Index, [2,3,4,5,6,7]))),
-        Out = Str
-    ).
+draw_sidebar(Width) :-
+    tty_goto(Width, 2),
+    health(player, HP),
+    format(' Player HP:   ~w/10', [HP]),
+    tty_goto(Width, 3),
+    manapool(player, MP),
+    format(' Player MP:   ~w', [MP]),
+    tty_goto(Width, 4),
+    (health(0, X) -> M1HP = X ; M1HP = 0),
+    format(' Minotaur HP: ~w/20', [M1HP]),
+    tty_goto(Width, 5),
+    (manapool(0, X) -> M1MP = X ; M1MP = 0),
+    format(' Minotaur MP: ~w', [M1MP]),
+    tty_goto(Width, 6),
+    (health(1, X) -> M2HP = X ; M2HP = 0),
+    format(' Minotaur HP: ~w/20', [M2HP]),
+    tty_goto(Width, 7),
+    (manapool(1, X) -> M2MP = X ; M2MP = 0),
+    format(' Minotaur MP: ~w', [M2MP]).
 
 pos_on_screen(Screen, coord(X,Y)) :-
     Screen = rectangle(coord(ULX, ULY), coord(LRX, LRY)),
@@ -105,6 +93,7 @@ draw_screen :-
     detect_screen_size(Width, Height),
     screen(Width, Height, Screen),
     draw_background(Screen),
+    draw_sidebar(Width),
     draw_objects(Screen),
     draw_messages.
 
@@ -113,8 +102,9 @@ draw_screen :-
 % (so player is neatly in the middle)
 detect_screen_size(Width, Height) :-
     tty_size(Rows, Columns),
-    XOffset #= 30,
-    YOffset #= 10,
+    % params for ui
+    XOffset #= 30, % offset to the right
+    YOffset #= 10, % offset on the bottom
     (
         Columns mod 2 #= 0
     ->
@@ -143,6 +133,12 @@ screen(Width, Height, Screen) :-
     %%%
     rectangle_midpoint(Screen, coord(PX, PY)).
 
+get_command(C) :-
+    get_single_char(X),
+    char_code(C, X),
+    handle_command(C).
+
+handle_command('q').
 handle_command('k') :-
     move_player(0, -1).
 handle_command('h') :-
@@ -151,9 +147,49 @@ handle_command('j') :-
     move_player(0, 1).
 handle_command('l') :-
     move_player(1, 0).
+handle_command('1') :-
+    cast_spell(1).
+handle_command('2') :-
+    cast_spell(2).
+handle_command('3') :-
+    cast_spell(3).
 handle_command(X) :-
-    not(memberchk(X, ['k','h','j','l','q'])),
+    not(memberchk(X, ['k','h','j','l','1','2','3','q'])),
     format('Unrecognized command ~w\n', [X]).
+
+message_box(Message) :-
+    detect_screen_size(Width, Height),
+
+    % draw message box
+    BoxsizeX #= Width - 20,
+    length(Chars, BoxsizeX),
+    maplist(=('#'), Chars),
+    string_chars(TopBottom, Chars),
+    tty_goto(10, 10),
+    writeln(TopBottom),
+
+    XMin2 #= BoxsizeX - 2,
+    length(Chars2, XMin2),
+    maplist(=(' '), Chars2),
+    string_chars(Spaces, Chars2),
+    string_concat(Spaces, "#", Temp),
+    string_concat("#", Temp, Middle),
+
+    BoxsizeY #= Height - 10,
+    YMin1 #= BoxsizeY - 1,
+    numlist(11, YMin1, Ys),
+    forall(member(Y, Ys), (
+        tty_goto(10, Y) ,
+        writeln(Middle)
+    )),
+    tty_goto(10, BoxsizeY),
+    writeln(TopBottom),
+
+    tty_goto(12, 13),
+    writeln(Message),
+
+    % stay until user presses any key
+    get_single_char(_).
 
 add_message(Colour, String, FmtArgs) :-
     messages(MessageLog),
